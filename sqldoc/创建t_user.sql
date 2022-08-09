@@ -10,7 +10,7 @@ CREATE TABLE t_user(
 	PRIMARY KEY(`id`)
 )
 COMMENT '用户表';
-------------------------------------------------
+
 CREATE TABLE t_goods(
 	id BIGINT(20) not NULL AuTO_increment COMMENT '商品ID',
 	goods_name VARCHAR(16) DEFAULT NULL COMMENT '商品名称',
@@ -22,7 +22,7 @@ CREATE TABLE t_goods(
 	PRIMARY KEY(id)
 )
 COMMENT '商品表';
-------------------------------------------------
+
 CREATE TABLE `t_order` (
 	`id` BIGINT(20) NOT NULL  AUTO_INCREMENT COMMENT '订单ID',
 	`user_id` BIGINT(20) DEFAULT NULL COMMENT '用户ID',
@@ -36,10 +36,9 @@ CREATE TABLE `t_order` (
 	`create_date` datetime DEFAULT NULL  COMMENT '订单创建时间',
 	`pay_date` datetime DEFAULT NULL  COMMENT '支付时间',
 	PRIMARY KEY(`id`)
-)ENGINE = INNODB AUTO_INCREMENT=12 DEFAULT CHARSET = utf8mb4;
-COMMENT '订单表'
-;
-------------------------------------------------
+)ENGINE = INNODB AUTO_INCREMENT=12 DEFAULT CHARSET = utf8mb4
+COMMENT '订单表';
+
 CREATE TABLE `t_seckill_goods`(
 	`id` BIGINT(20) NOT NULL AUTO_INCREMENT COMMENT '秒杀商品ID',
 	`goods_id` BIGINT(20) NOT NULL COMMENT '商品ID',
@@ -51,7 +50,7 @@ CREATE TABLE `t_seckill_goods`(
 )ENGINE = INNODB AUTO_INCREMENT=3 DEFAULT CHARSET = utf8mb4
 COMMENT '秒杀商品表'
 ;
-------------------------------------------------
+
 CREATE TABLE `t_seckill_order` (
 	`id` BIGINT(20) NOT NULL AUTO_INCREMENT COMMENT '秒杀订单ID',
 	`user_id` BIGINT(20) NOT NULL  COMMENT '用户ID',
@@ -61,13 +60,8 @@ CREATE TABLE `t_seckill_order` (
 )ENGINE = INNODB AUTO_INCREMENT=3 DEFAULT CHARSET = utf8mb4
 COMMENT '秒杀订单表'
 ;
-------------------------------------------------
+
 -- 添加索引，讲到时在加
 ALTER TABLE `seckill`.`t_seckill_order` 
 ADD UNIQUE INDEX `seckill_uid_gid`(user_id, goods_id) USING BTREE COMMENT '用户ID+商品ID成为唯一索引，';
-------------------------------------------------
-------------------------------------------------
-------------------------------------------------
-------------------------------------------------
-------------------------------------------------
-------------------------------------------------
+
