@@ -4,10 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.conditions.update.UpdateChainWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.example.seckilldemo.entity.TOrder;
-import com.example.seckilldemo.entity.TSeckillGoods;
-import com.example.seckilldemo.entity.TSeckillOrder;
-import com.example.seckilldemo.entity.TUser;
+import com.example.seckilldemo.entity.*;
 import com.example.seckilldemo.exception.GlobalException;
 import com.example.seckilldemo.mapper.TOrderMapper;
 import com.example.seckilldemo.mapper.TSeckillOrderMapper;
@@ -54,6 +51,36 @@ public class TOrderServiceImpl extends ServiceImpl<TOrderMapper, TOrder> impleme
     private ITGoodsService itGoodsService;
     @Autowired
     private RedisTemplate redisTemplate;
+
+    @Override
+//    @Transactional
+    public TOrder seckill2(TUser user, GoodsVo goods) {
+        //秒杀商品表减库存
+        TSeckillGoods tSeckillGoods = itSeckillGoodsService.getOne(new
+                QueryWrapper<TSeckillGoods>().eq("goods_id",
+                goods.getId()));
+        tSeckillGoods.setStockCount(tSeckillGoods.getStockCount() - 1);
+        itSeckillGoodsService.updateById(tSeckillGoods);
+        //生成订单
+        TOrder order = new TOrder();
+        order.setUserId(user.getId());
+        order.setGoodsId(goods.getId());
+        order.setDeliveryAddrId(0L);
+        order.setGoodsName(goods.getGoodsName());
+        order.setGoodsCount(1);
+        order.setGoodsPrice(tSeckillGoods.getSeckillPrice());
+        order.setOrderChannel(1);
+        order.setStatus(0);
+        order.setCreateDate(new Date());
+        tOrderMapper.insert(order);
+        //生成秒杀订单
+        TSeckillOrder seckillOrder = new TSeckillOrder();
+        seckillOrder.setOrderId(order.getId());
+        seckillOrder.setUserId(user.getId());
+        seckillOrder.setGoodsId(goods.getId());
+        itSeckillOrderService.save(seckillOrder);
+        return order;
+    }
 
     @Transactional
     @Override

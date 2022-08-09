@@ -252,7 +252,7 @@ public class SeKillController implements InitializingBean {
             model.addAttribute("errmsg", RespBeanEnum.REPEATE_ERROR.getMessage());
             return "secKillFail";
         }
-        TOrder tOrder = orderService.secKill(user, goodsVo);
+        TOrder tOrder = orderService.seckill2(user, goodsVo);
         model.addAttribute("order", tOrder);
         model.addAttribute("goods", goodsVo);
         return "orderDetail";

@@ -27,6 +27,8 @@ public interface ITOrderService extends IService<TOrder> {
      **/
     TOrder secKill(TUser user, GoodsVo goodsVo);
 
+    TOrder seckill2(TUser user, GoodsVo goods);
+
     /**
      * 订单详情方法
      *
@@ -65,13 +67,14 @@ public interface ITOrderService extends IService<TOrder> {
 
     /**
      * 校验验证码
-     * @author LiChao
-     * @operation add
-     * @date 3:52 下午 2022/3/9
+     *
      * @param tuser
      * @param goodsId
      * @param captcha
      * @return boolean
+     * @author LiChao
+     * @operation add
+     * @date 3:52 下午 2022/3/9
      **/
     boolean checkCaptcha(TUser tuser, Long goodsId, String captcha);
 }
