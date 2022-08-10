@@ -247,11 +247,11 @@ public class SeKillController implements InitializingBean {
             return "secKillFail";
         }
         //判断是否重复抢购
-        TSeckillOrder seckillOrder = itSeckillOrderService.getOne(new QueryWrapper<TSeckillOrder>().eq("user_id", user.getId()).eq("goods_id", goodsId));
-        if (seckillOrder != null) {
-            model.addAttribute("errmsg", RespBeanEnum.REPEATE_ERROR.getMessage());
-            return "secKillFail";
-        }
+//        TSeckillOrder seckillOrder = itSeckillOrderService.getOne(new QueryWrapper<TSeckillOrder>().eq("user_id", user.getId()).eq("goods_id", goodsId));
+//        if (seckillOrder != null) {
+//            model.addAttribute("errmsg", RespBeanEnum.REPEATE_ERROR.getMessage());
+//            return "secKillFail";
+//        }
         TOrder tOrder = orderService.seckill2(user, goodsVo);
         model.addAttribute("order", tOrder);
         model.addAttribute("goods", goodsVo);

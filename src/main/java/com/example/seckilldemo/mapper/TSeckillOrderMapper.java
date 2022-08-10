@@ -2,6 +2,7 @@ package com.example.seckilldemo.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.example.seckilldemo.entity.TSeckillOrder;
+import org.apache.ibatis.annotations.Update;
 
 /**
  * 秒杀订单表 Mapper 接口
@@ -10,5 +11,6 @@ import com.example.seckilldemo.entity.TSeckillOrder;
  * @since 2022-03-03
  */
 public interface TSeckillOrderMapper extends BaseMapper<TSeckillOrder> {
+
 
 }

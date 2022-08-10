@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.seckilldemo.entity.*;
 import com.example.seckilldemo.exception.GlobalException;
 import com.example.seckilldemo.mapper.TOrderMapper;
+import com.example.seckilldemo.mapper.TSeckillGoodsMapper;
 import com.example.seckilldemo.mapper.TSeckillOrderMapper;
 import com.example.seckilldemo.service.ITGoodsService;
 import com.example.seckilldemo.service.ITOrderService;
@@ -17,9 +18,12 @@ import com.example.seckilldemo.utils.UUIDUtil;
 import com.example.seckilldemo.vo.GoodsVo;
 import com.example.seckilldemo.vo.OrderDeatilVo;
 import com.example.seckilldemo.vo.RespBeanEnum;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.catalina.User;
+import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.Sort.Order;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
@@ -39,6 +43,7 @@ import java.util.concurrent.TimeUnit;
  */
 @Service
 @Primary
+@Slf4j
 public class TOrderServiceImpl extends ServiceImpl<TOrderMapper, TOrder> implements ITOrderService {
 
     @Autowired
@@ -51,16 +56,16 @@ public class TOrderServiceImpl extends ServiceImpl<TOrderMapper, TOrder> impleme
     private ITGoodsService itGoodsService;
     @Autowired
     private RedisTemplate redisTemplate;
-
+    @Autowired
+    private TSeckillGoodsMapper tSeckillGoodsMapper;
+    @Transactional
     @Override
-//    @Transactional
     public TOrder seckill2(TUser user, GoodsVo goods) {
         //秒杀商品表减库存
-        TSeckillGoods tSeckillGoods = itSeckillGoodsService.getOne(new
-                QueryWrapper<TSeckillGoods>().eq("goods_id",
-                goods.getId()));
-        tSeckillGoods.setStockCount(tSeckillGoods.getStockCount() - 1);
-        itSeckillGoodsService.updateById(tSeckillGoods);
+         if(!tSeckillGoodsMapper.reduceStack(goods.getId())){
+             throw new GlobalException(RespBeanEnum.EMPTY_STOCK);
+         }
+
         //生成订单
         TOrder order = new TOrder();
         order.setUserId(user.getId());
@@ -68,7 +73,7 @@ public class TOrderServiceImpl extends ServiceImpl<TOrderMapper, TOrder> impleme
         order.setDeliveryAddrId(0L);
         order.setGoodsName(goods.getGoodsName());
         order.setGoodsCount(1);
-        order.setGoodsPrice(tSeckillGoods.getSeckillPrice());
+        order.setGoodsPrice(goods.getSeckillPrice());
         order.setOrderChannel(1);
         order.setStatus(0);
         order.setCreateDate(new Date());
@@ -78,7 +83,15 @@ public class TOrderServiceImpl extends ServiceImpl<TOrderMapper, TOrder> impleme
         seckillOrder.setOrderId(order.getId());
         seckillOrder.setUserId(user.getId());
         seckillOrder.setGoodsId(goods.getId());
-        itSeckillOrderService.save(seckillOrder);
+        boolean res=false;
+        try{
+             res=itSeckillOrderService.save(seckillOrder);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        if(!res) {
+            throw new GlobalException(RespBeanEnum.REPEATE_ERROR);
+        }
         return order;
     }
 
