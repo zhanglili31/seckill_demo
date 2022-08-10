@@ -37,6 +37,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -65,7 +66,8 @@ public class SeKillController implements InitializingBean {
     @Autowired
     private RedisScript<Long> redisScript;
 
-    private Map<Long, Boolean> EmptyStockMap = new HashMap<>();
+    //    private Map<Long, Boolean> EmptyStockMap = new HashMap<>();
+    private Map<Long, Boolean> EmptyStockMap = new ConcurrentHashMap<>();
 
 
     @ApiOperation("获取验证码")
@@ -234,28 +236,51 @@ public class SeKillController implements InitializingBean {
      * @param goodsId
      * @return java.lang.String
      * @author LC
-     * @operation add
+     * @operation 并发度：167
      * @date 11:36 上午 2022/3/4
      **/
-    @ApiOperation("秒杀功能-废弃")
+    @ApiOperation("秒杀功能-sql中更新的时候判断库存大于0+联合索引去重复 解决超卖和同一个用户重复买的问题")
     @RequestMapping(value = "/doSeckill2", method = RequestMethod.POST)
     public String doSecKill2(Model model, TUser user, Long goodsId) {
+        //判断库存
         model.addAttribute("user", user);
         GoodsVo goodsVo = itGoodsService.findGoodsVobyGoodsId(goodsId);
         if (goodsVo.getStockCount() < 1) {
             model.addAttribute("errmsg", RespBeanEnum.EMPTY_STOCK.getMessage());
             return "secKillFail";
         }
-        //判断是否重复抢购
-//        TSeckillOrder seckillOrder = itSeckillOrderService.getOne(new QueryWrapper<TSeckillOrder>().eq("user_id", user.getId()).eq("goods_id", goodsId));
-//        if (seckillOrder != null) {
-//            model.addAttribute("errmsg", RespBeanEnum.REPEATE_ERROR.getMessage());
-//            return "secKillFail";
-//        }
         TOrder tOrder = orderService.seckill2(user, goodsVo);
         model.addAttribute("order", tOrder);
         model.addAttribute("goods", goodsVo);
         return "orderDetail";
+    }
+    @ResponseBody
+    @ApiOperation("秒杀功能-redis的lua脚本扣库存+rabiitmq异步写入数据库")
+    @RequestMapping(value = "/doSeckill3", method = RequestMethod.POST)
+    public String doSecKill3(Model model, TUser user, Long goodsId) {
+        //判断库存
+        if (EmptyStockMap.get(goodsId)) {
+            throw new GlobalException(RespBeanEnum.EMPTY_STOCK);
+        }
+        //判断是否重复抢购,这里key的时间可以和活动结束时间一一致，这样活动结束，key在redis删除，优雅自然。
+        TSeckillOrder tSeckillOrder = (TSeckillOrder) redisTemplate.opsForValue().get("order:" + user.getId() + ":" + goodsId);
+        if (tSeckillOrder != null) {
+            throw new GlobalException(RespBeanEnum.REPEATE_ERROR);
+        }
+        //执行秒杀过程
+        Long stock = (Long) redisTemplate.execute(redisScript, Collections.singletonList("seckillGoods:" + goodsId), Collections.EMPTY_LIST);
+        if (stock < 0) {//等于0表示，最后一个秒杀到商品，-1表示已经被秒杀完了。因此
+            EmptyStockMap.put(goodsId, true);
+            throw new GlobalException(RespBeanEnum.EMPTY_STOCK);
+        }
+        redisTemplate.opsForValue().set("order:" + user.getId() + ":" + goodsId, tSeckillOrder);
+        //将秒杀的结果发送给rabbitmq ,写数据库
+        SeckillMessage seckillMessag = new SeckillMessage(user, goodsId);
+        mqSender.sendSeckillMessage(JsonUtil.object2JsonStr(seckillMessag));
+        System.out.println("秒杀成功");
+
+
+        return "miao sha success";
     }
 
     /**

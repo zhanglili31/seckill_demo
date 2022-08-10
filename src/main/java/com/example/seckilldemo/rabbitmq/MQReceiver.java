@@ -3,6 +3,7 @@ package com.example.seckilldemo.rabbitmq;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.example.seckilldemo.entity.TSeckillOrder;
 import com.example.seckilldemo.entity.TUser;
+import com.example.seckilldemo.exception.GlobalException;
 import com.example.seckilldemo.service.ITGoodsService;
 import com.example.seckilldemo.service.ITOrderService;
 import com.example.seckilldemo.service.ITSeckillOrderService;
@@ -63,7 +64,12 @@ public class MQReceiver {
             return;
         }
         //下单操作
-        itOrderService.secKill(user, goodsVo);
+        try{
+            itOrderService.secKill(user, goodsVo);
+        }catch(Exception e){
+//            throw new GlobalException(RespBeanEnum.REPEATE_ERROR);
+        }
+
 
     }
 

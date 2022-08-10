@@ -58,13 +58,14 @@ public class TOrderServiceImpl extends ServiceImpl<TOrderMapper, TOrder> impleme
     private RedisTemplate redisTemplate;
     @Autowired
     private TSeckillGoodsMapper tSeckillGoodsMapper;
+
     @Transactional
     @Override
     public TOrder seckill2(TUser user, GoodsVo goods) {
         //秒杀商品表减库存
-         if(!tSeckillGoodsMapper.reduceStack(goods.getId())){
-             throw new GlobalException(RespBeanEnum.EMPTY_STOCK);
-         }
+        if (!tSeckillGoodsMapper.reduceStack(goods.getId())) {
+            throw new GlobalException(RespBeanEnum.EMPTY_STOCK);
+        }
 
         //生成订单
         TOrder order = new TOrder();
@@ -83,13 +84,13 @@ public class TOrderServiceImpl extends ServiceImpl<TOrderMapper, TOrder> impleme
         seckillOrder.setOrderId(order.getId());
         seckillOrder.setUserId(user.getId());
         seckillOrder.setGoodsId(goods.getId());
-        boolean res=false;
-        try{
-             res=itSeckillOrderService.save(seckillOrder);
-        }catch (Exception e){
+        boolean res = false;
+        try {
+            res = itSeckillOrderService.save(seckillOrder);
+        } catch (Exception e) {
             e.printStackTrace();
         }
-        if(!res) {
+        if (!res) {
             throw new GlobalException(RespBeanEnum.REPEATE_ERROR);
         }
         return order;
@@ -140,8 +141,18 @@ public class TOrderServiceImpl extends ServiceImpl<TOrderMapper, TOrder> impleme
         tSeckillOrder.setUserId(user.getId());
         tSeckillOrder.setOrderId(order.getId());
         tSeckillOrder.setGoodsId(goodsVo.getId());
-        itSeckillOrderService.save(tSeckillOrder);
-        redisTemplate.opsForValue().set("order:" + user.getId() + ":" + goodsVo.getId(), tSeckillOrder);
+        try {
+            itSeckillOrderService.save(tSeckillOrder);
+        } catch (DuplicateKeyException e) {
+            redisTemplate.opsForValue().increment("seckillGoods:"+goodsVo.getId(), 1);
+            e.printStackTrace();
+            throw new GlobalException(RespBeanEnum.REPEATE_ERROR);
+        } catch (Exception e) {
+            throw new GlobalException(RespBeanEnum.ERROR);
+        }
+
+//        redisTemplate.opsForValue().set("order:" + user.getId() + ":" + goodsVo.getId(), tSeckillOrder);
+
         return order;
     }
 
